@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Rejeitos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        dark: '#1e293b',
+                        light: '#f8fafc'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 2s linear infinite',
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Custom classes */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background-color: #1e293b;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+        
+        /* Table row hover effect */
+        .table-row-hover:hover {
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        }
+        
+        /* Button hover effects */
+        .btn-hover {
+            transition: all 0.2s ease;
+            transform: translateY(0);
+        }
+        
+        .btn-hover:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-active {
+            transition: all 0.1s ease;
+        }
+        
+        .btn-active:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+        
+        /* Card styling */
+        .card {
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        /* Input focus styling */
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .summary-card {
+                min-width: 100%;
+            }
+            
+            .chart-container {
+                min-height: 300px;
+            }
+        }
+        
+        /* Adherence color classes */
+        .adherence-high {
+            background-color: #10b981;
+        }
+        
+        .adherence-medium {
+            background-color: #f59e0b;
+        }
+        
+        .adherence-low {
+            background-color: #ef4444;
+        }
+        
+        /* Custom transitions */
+        .transition-all-slow {
+            transition: all 0.5s ease;
+        }
+        
+        /* Custom shadows */
+        .shadow-custom {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased text-gray-800">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-box-open text-xl"></i>
+                    </div>
+                    <h1 class="ml-3 text-xl font-bold text-gray-900">Status Paletização</h1>
+                </div>
+                <div class="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="searchInput" placeholder="Buscar..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent input-focus w-full">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button id="exportBtn" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200 flex items-center justify-center btn-hover btn-active w-full md:w-auto">
+                        <i class="fas fa-download mr-2"></i> Exportar
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Inseridos</p>
+                            <p id="totalInserted" class="mt-1 text-3xl font-semibold text-primary">66</p>
+                        </div>
+                        <div class="p-3 rounded-full bg-blue-50 text-primary shadow-inner">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Rejeitados</p>
+                            <p id="totalRejected" class="mt-1 text-3xl font-semibold text-danger">84</p>
+                        </div>
+                        <div class="p-3 rounded-full bg-red-50 text-danger shadow-inner">
+                            <i class="fas fa-times-circle text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Taxa de Rejeição</p>
+                            <p id="rejectionRate" class="mt-1 text-3xl font-semibold text-warning">56%</p>
+                        </div>
+                        <div class="p-3 rounded-full bg-amber-50 text-warning shadow-inner">
+                            <i class="fas fa-chart-pie text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Caixas Rejeitadas</p>
+                            <p id="rejectedBoxes" class="mt-1 text-3xl font-semibold text-secondary">4</p>
+                        </div>
+                        <div class="p-3 rounded-full bg-green-50 text-secondary shadow-inner">
+                            <i class="fas fa-box text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8 card">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 md:mb-0">Filtros</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
+                            <select id="periodSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent input-focus">
+                                <option value="30">Últimos 30 dias</option>
+                                <option value="60">Últimos 60 dias</option>
+                                <option value="90">Últimos 90 dias</option>
+                                <option value="custom" selected>Personalizado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">De</label>
+                            <input id="dateFrom" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent input-focus" value="2025-04-02">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Até</label>
+                            <input id="dateTo" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent input-focus" value="2025-04-29">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Rejeitos por Dia</h2>
+                        <div class="flex space-x-2">
+                            <button id="showInsertedBtn" class="px-3 py-1 text-sm bg-primary text-white rounded-lg btn-hover btn-active">Inseridos</button>
+                            <button id="showRejectedBtn" class="px-3 py-1 text-sm bg-danger text-white rounded-lg btn-hover btn-active">Rejeitados</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6 card">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Motivos de Rejeição</h2>
+                        <button id="showAllReasonsBtn" class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 btn-hover btn-active">Ver todos</button>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="reasonsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden card">
+                <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
+                    <h2 class="text-lg font-semibold text-gray-800">Registros de Rejeição</h2>
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <select id="tablePeriodSelect" class="appearance-none bg-gray-100 border-0 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-primary input-focus">
+                                <option value="15">Últimos 15 dias</option>
+                                <option value="30">Últimos 30 dias</option>
+                                <option value="all">Todos</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <button id="refreshTableBtn" class="p-2 rounded-lg hover:bg-gray-100 btn-hover">
+                            <i class="fas fa-sync-alt text-gray-500"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inseridos</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rejeitos</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsáveis</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aderência</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Caixas Rej</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Table rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                    <div id="tableInfo" class="text-sm text-gray-500">
+                        Mostrando <span class="font-medium">1</span> a <span class="font-medium">8</span> de <span class="font-medium">8</span> resultados
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="prevPageBtn" class="px-3 py-1 rounded-lg border text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 btn-hover btn-active">
+                            Anterior
+                        </button>
+                        <button id="page1Btn" class="px-3 py-1 rounded-lg border text-sm font-medium text-white bg-primary hover:bg-blue-600 btn-hover btn-active">
+                            1
+                        </button>
+                        <button id="nextPageBtn" class="px-3 py-1 rounded-lg border text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 btn-hover btn-active">
+                            Próximo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script>
+        // Sample data
+        // Dados da planilha, ajustados com as informações fornecidas
+const tableData = [
+    { date: '02/04/2025', inserted: 6, rejected: 8, reason: 'Traseira | frente | cc esquerda | Erro de leitura de etiqueta', responsible: 'RN, Sistema, RN, RN', boxes: 0 },
+    { date: '03/04/2025', inserted: 17, rejected: 8, reason: 'cc esquerda | pés livres | Erro de leitura de etiqueta', responsible: 'RN, Pallet, Sistema', boxes: 0 },
+    { date: '07/04/2025', inserted: 5, rejected: 8, reason: 'cc esquerda | pés livres | Erro de leitura de etiqueta', responsible: 'RN, Pallet, Sistema', boxes: 0 },
+    { date: '08/04/2025', inserted: 5, rejected: 9, reason: 'cc esquerda | Pés livres | cc esquerda/ Erro leitura de etq / pés livres/ físico e sistêmico diferente', responsible: 'RN, Pallet, Sistema', boxes: 0 },
+    { date: '09/04/2025', inserted: 5, rejected: 8, reason: 'CC esquerda | CC direita | Erro de Leitura | Físico apresentando mais caixas que na etiqueta PLT | CC direita / Etiquetagem Manual', responsible: 'RN, RN, Enzo', boxes: 0 },
+    { date: '10/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '11/04/2025', inserted: 5, rejected: 5, reason: 'CC esquerda', responsible: 'RN', boxes: 0 },
+    { date: '12/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '13/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '14/04/2025', inserted: 2, rejected: 1, reason: 'Erro de leitura de etiqueta', responsible: 'Sistema', boxes: 0 },
+    { date: '15/04/2025', inserted: 1, rejected: 3, reason: 'Físico 42 > Sistêmico 39 | Sistema | CC esquerda RN | Físico 6 > Sistêmico 4 | Sistema', responsible: 'RN', boxes: 4 },
+    { date: '16/04/2025', inserted: 0, rejected: 11, reason: 'Falha impressão ETQ PLT', responsible: '', boxes: 0 },
+    { date: '17/04/2025', inserted: 0, rejected: 1, reason: 'cc esquerda', responsible: 'RN', boxes: 0 },
+    { date: '18/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '19/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '20/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '21/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '22/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '23/04/2025', inserted: 2, rejected: 7, reason: 'Etiquetadora sem sinal | CC esquerda | Pés Pallet', responsible: 'RN, Pallet', boxes: 0 },
+    { date: '24/04/2025', inserted: 8, rejected: 14, reason: 'Erro de leitura de etiqueta | Sistema | Pés livres, Erro de leitura de etiqueta | Pallet | Sistema | cc esquerda, cc direita, pés livres | Pallet', responsible: 'RN, RN, Pallet, Sistema', boxes: 0 },
+    { date: '25/04/2025', inserted: 6, rejected: 7, reason: 'CC direita |  cc esquerda | Erro de leitura de etiqueta', responsible: 'RN, RN, Sistema', boxes: 0 },
+    { date: '26/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '27/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 },
+    { date: '28/04/2025', inserted: 2, rejected: 4, reason: 'cc esquerda', responsible: 'RN', boxes: 0 },
+    { date: '29/04/2025', inserted: 9, rejected: 10, reason: 'Manutenção Sistema', responsible: 'Manutenção', boxes: 0 },
+    { date: '30/04/2025', inserted: 0, rejected: 0, reason: '', responsible: '', boxes: 0 }
+    
+];
+
+// Função de cálculo dos totais
+function calculateTotals() {
+    const totalInserted = tableData.reduce((sum, item) => sum + item.inserted, 0);
+    const totalRejected = tableData.reduce((sum, item) => sum + item.rejected, 0);
+    const rejectionRate = Math.round((totalRejected / (totalInserted + totalRejected)) * 100);
+    const rejectedBoxes = tableData.reduce((sum, item) => sum + item.boxes, 0);
+    
+    // Atualizando os valores no HTML
+    document.getElementById('totalInserted').textContent = totalInserted;
+    document.getElementById('totalRejected').textContent = totalRejected;
+    document.getElementById('rejectionRate').textContent = `${rejectionRate}%`;
+    document.getElementById('rejectedBoxes').textContent = rejectedBoxes;
+}
+
+// Chamando a função de cálculo
+calculateTotals();
+
+
+        // Chart variables
+        let dailyChart;
+        let reasonsChart;
+        let currentPage = 1;
+        const rowsPerPage = 10;
+        let filteredData = [...tableData];
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            renderTable();
+            setupEventListeners();
+            calculateTotals();
+        });
+
+        // Initialize charts
+        function initCharts() {
+            // Daily Chart
+            const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+            dailyChart = new Chart(dailyCtx, {
+                type: 'bar',
+                data: {
+                    labels: tableData.map(item => item.date.split('/')[0] + '/' + item.date.split('/')[1]),
+                    datasets: [
+                        {
+                            label: 'Inseridos',
+                            data: tableData.map(item => item.inserted),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4,
+                            hidden: false
+                        },
+                        {
+                            label: 'Rejeitados',
+                            data: tableData.map(item => item.rejected),
+                            backgroundColor: '#ef4444',
+                            borderRadius: 4,
+                            hidden: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1e293b',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 12
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            boxPadding: 4
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#64748b'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: '#e2e8f0'
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                padding: 10
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // Inicializando o gráfico de motivos de rejeição
+            const reasonsCtx = document.getElementById('reasonsChart').getContext('2d');
+            const reasonsChart = new Chart(reasonsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['CC Esquerda', 'Erro Leitura', 'Pés Livres', 'Sistema', 'Outros'],  // Rótulos das razões de rejeição
+        datasets: [{
+            data: [35, 25, 15, 10, 15],  // Dados de quantidade de rejeições por motivo (percentual ou quantidade)
+            backgroundColor: [
+                '#3b82f6',  // CC Esquerda
+                '#ef4444',  // Erro Leitura
+                '#f59e0b',  // Pés Livres
+                '#10b981',  // Sistema
+                '#64748b'   // Outros
+            ],
+            borderWidth: 0,
+            hoverOffset: 8,
+            hoverBorderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',  // Posiciona a legenda à direita
+                labels: {
+                    boxWidth: 12,
+                    padding: 20,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                backgroundColor: '#1e293b',
+                titleFont: {
+                    size: 14,
+                    weight: 'bold'
+                },
+                bodyFont: {
+                    size: 12
+                },
+                padding: 12,
+                cornerRadius: 8,
+                displayColors: false,
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);  // Total de todas as rejeições
+                        const percentage = Math.round((value / total) * 100);  // Cálculo da porcentagem
+                        return `${label}: ${value} (${percentage}%)`;  // Exibe a quantidade e a porcentagem
+                    }
+                }
+            },
+            datalabels: {
+                // Configuração dos rótulos externos
+                display: true,
+                color: '#ffffff',  // Cor do texto dos rótulos
+                font: {
+                    weight: 'bold',
+                    size: 14
+                },
+                formatter: (value, context) => {
+                    const total = context.chart._metasets[0].data.reduce((sum, val) => sum + val, 0);  // Total de todas as rejeições
+                    const percentage = ((value / total) * 100).toFixed(1);  // Calculando a porcentagem
+                    return `${value} (${percentage}%)`;  // Exibe a quantidade e a porcentagem
+                },
+                position: 'outside',  // Coloca os rótulos fora do gráfico
+                anchor: 'end',  // Alinha o texto no final dos segmentos
+                padding: 20,  // Ajusta o espaçamento entre o gráfico e os rótulos
+                rotation: 0  // Garante que o texto não tenha rotação
+            }
+        },
+        cutout: '70%',  // Deixa o centro do gráfico vazio
+        animation: {
+            animateScale: true,
+            animateRotate: true
+
+            
+        }
+        
+    }
+    
+});
+        
+
+        }
+
+        // Render table with pagination
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            paginatedData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'table-row-hover transition-all duration-150 ease-in-out';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.inserted}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.rejected}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        <div class="tooltip">
+                            <span class="inline-block max-w-xs truncate">${item.reason}</span>
+                            <div class="tooltip-text">${item.reason}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.responsible}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div class="flex items-center">
+                            <span class="mr-2">${item.adherence}%</span>
+                            <div class="w-16 progress-bar">
+                                <div class="progress-bar-fill ${getAdherenceColor(item.adherence)}" style="width: ${item.adherence}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.boxes}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-primary hover:text-blue-700 btn-hover">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update table info
+            document.getElementById('tableInfo').innerHTML = `
+                Mostrando <span class="font-medium">${startIndex + 1}</span> a <span class="font-medium">${Math.min(endIndex, filteredData.length)}</span> de <span class="font-medium">${filteredData.length}</span> resultados
+            `;
+
+            // Update pagination buttons
+            updatePaginationButtons();
+        }
+
+        // Get adherence color based on value
+        function getAdherenceColor(adherence) {
+            if (adherence >= 60) return 'adherence-high';
+            if (adherence >= 40) return 'adherence-medium';
+            return 'adherence-low';
+        }
+
+        // Update pagination buttons
+        function updatePaginationButtons() {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            
+            document.getElementById('prevPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+            
+            // Clear all page buttons except the first one
+            const paginationContainer = document.querySelector('.flex.space-x-2');
+            const existingPageButtons = document.querySelectorAll('[id^="page"]');
+            existingPageButtons.forEach(btn => {
+                if (btn.id !== 'page1Btn') {
+                    btn.remove();
+                }
+            });
+            
+            // Add new page buttons
+            for (let i = 2; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.id = `page${i}Btn`;
+                pageBtn.className = `px-3 py-1 rounded-lg border text-sm font-medium ${currentPage === i ? 'text-white bg-primary hover:bg-blue-600' : 'text-gray-700 bg-white hover:bg-gray-50'} btn-hover btn-active`;
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                });
+                
+                // Insert before next button
+                const nextBtn = document.getElementById('nextPageBtn');
+                nextBtn.parentNode.insertBefore(pageBtn, nextBtn);
+            }
+        }
+
+        // Calculate totals for summary cards
+        function calculateTotals() {
+            const totalInserted = tableData.reduce((sum, item) => sum + item.inserted, 0);
+            const totalRejected = tableData.reduce((sum, item) => sum + item.rejected, 0);
+            const rejectionRate = Math.round((totalRejected / (totalInserted + totalRejected)) * 100);
+            const rejectedBoxes = tableData.reduce((sum, item) => sum + item.boxes, 0);
+            
+            document.getElementById('totalInserted').textContent = totalInserted;
+            document.getElementById('totalRejected').textContent = totalRejected;
+            document.getElementById('rejectionRate').textContent = `${rejectionRate}%`;
+            document.getElementById('rejectedBoxes').textContent = rejectedBoxes;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Chart toggle buttons
+            document.getElementById('showInsertedBtn').addEventListener('click', function() {
+                const isHidden = dailyChart.getDatasetMeta(0).hidden;
+                dailyChart.setDatasetVisibility(0, !isHidden);
+                dailyChart.update();
+                this.classList.toggle('bg-primary', !isHidden);
+                this.classList.toggle('bg-gray-300', isHidden);
+            });
+            
+            document.getElementById('showRejectedBtn').addEventListener('click', function() {
+                const isHidden = dailyChart.getDatasetMeta(1).hidden;
+                dailyChart.setDatasetVisibility(1, !isHidden);
+                dailyChart.update();
+                this.classList.toggle('bg-danger', !isHidden);
+                this.classList.toggle('bg-gray-300', isHidden);
+            });
+            
+            // Show all reasons button
+            document.getElementById('showAllReasonsBtn').addEventListener('click', function() {
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800">Todos os Motivos de Rejeição</h3>
+                                <button class="text-gray-500 hover:text-gray-700" id="closeModalBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="space-y-4">
+                                ${tableData.map(item => `
+                                    <div class="border-b border-gray-200 pb-4">
+                                        <h4 class="font-medium text-gray-900">${item.date}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">${item.reason}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Close modal button
+                document.getElementById('closeModalBtn').addEventListener('click', function() {
+                    modal.remove();
+                });
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            });
+            
+            // Export button
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                // Show loading state
+                const icon = this.querySelector('i');
+                icon.classList.remove('fa-download');
+                icon.classList.add('fa-spinner', 'loading-spinner');
+                
+                // Simulate export process
+                setTimeout(() => {
+                    icon.classList.remove('fa-spinner', 'loading-spinner');
+                    icon.classList.add('fa-download');
+                    
+                    // Create download link
+                    const csvContent = "data:text/csv;charset=utf-8," 
+                        + "Data,Inseridos,Rejeitados,Motivo,Responsáveis,Aderência,Caixas Rejeitadas\n"
+                        + tableData.map(item => 
+                            `"${item.date}","${item.inserted}","${item.rejected}","${item.reason}","${item.responsible}","${item.adherence}","${item.boxes}"`
+                        ).join("\n");
+                    
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "rejeitos_exportados.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, 1000);
+            });
+            
+            // Period select
+            document.getElementById('periodSelect').addEventListener('change', function() {
+                if (this.value !== 'custom') {
+                    const days = parseInt(this.value);
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - days);
+                    
+                    document.getElementById('dateFrom').valueAsDate = startDate;
+                    document.getElementById('dateTo').valueAsDate = endDate;
+                    
+                    // Filter data based on dates
+                    filterDataByDate(startDate, endDate);
+                }
+            });
+            
+            // Date inputs
+            document.getElementById('dateFrom').addEventListener('change', function() {
+                if (document.getElementById('periodSelect').value === 'custom') {
+                    const startDate = new Date(this.value);
+                    const endDate = new Date(document.getElementById('dateTo').value);
+                    filterDataByDate(startDate, endDate);
+                }
+            });
+            
+            document.getElementById('dateTo').addEventListener('change', function() {
+                if (document.getElementById('periodSelect').value === 'custom') {
+                    const startDate = new Date(document.getElementById('dateFrom').value);
+                    const endDate = new Date(this.value);
+                    filterDataByDate(startDate, endDate);
+                }
+            });
+            
+            // Table period select
+            document.getElementById('tablePeriodSelect').addEventListener('change', function() {
+                if (this.value === 'all') {
+                    filteredData = [...tableData];
+                } else {
+                    const days = parseInt(this.value);
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(endDate.getDate() - days);
+                    filterDataByDate(startDate, endDate);
+                }
+                currentPage = 1;
+                renderTable();
+            });
+            
+            // Refresh table button
+            document.getElementById('refreshTableBtn').addEventListener('click', function() {
+                // Add rotation animation
+                const icon = this.querySelector('i');
+                icon.classList.add('animate-spin');
+                
+                // Simulate data refresh
+                setTimeout(() => {
+                    icon.classList.remove('animate-spin');
+                    
+                    // Show notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center fade-in';
+                    notification.innerHTML = `
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span>Tabela atualizada com sucesso</span>
+                    `;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 300);
+                    }, 3000);
+                }, 1000);
+            });
+            
+            // Pagination buttons
+            document.getElementById('prevPageBtn').addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable();
+                }
+            });
+            
+            document.getElementById('nextPageBtn').addEventListener('click', function() {
+                const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable();
+                }
+            });
+            
+            document.getElementById('page1Btn').addEventListener('click', function() {
+                currentPage = 1;
+                renderTable();
+            });
+            
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                if (searchTerm.length > 0) {
+                    filteredData = tableData.filter(item => 
+                        item.date.toLowerCase().includes(searchTerm) ||
+                        item.reason.toLowerCase().includes(searchTerm) ||
+                        item.responsible.toLowerCase().includes(searchTerm)
+                    );
+                } else {
+                    filteredData = [...tableData];
+                }
+                currentPage = 1;
+                renderTable();
+            });
+        }
+        
+        // Filter data by date range
+        function filterDataByDate(startDate, endDate) {
+            filteredData = tableData.filter(item => {
+                const [day, month, year] = item.date.split('/');
+                const itemDate = new Date(`${year}-${month}-${day}`);
+                return itemDate >= startDate && itemDate <= endDate;
+            });
+            
+            currentPage = 1;
+            renderTable();
+            
+            // Update charts with filtered data
+            updateChartsWithFilteredData();
+        }
+        
+        // Update charts with filtered data
+        function updateChartsWithFilteredData() {
+            // Update daily chart
+            dailyChart.data.labels = filteredData.map(item => item.date.split('/')[0] + '/' + item.date.split('/')[1]);
+            dailyChart.data.datasets[0].data = filteredData.map(item => item.inserted);
+            dailyChart.data.datasets[1].data = filteredData.map(item => item.rejected);
+            dailyChart.update();
+            
+            // Update totals
+            calculateTotals();
+        }
+    </script>
+</body>
+</html>
